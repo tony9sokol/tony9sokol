@@ -31,6 +31,8 @@
  * 			- If -4: The symbol was found, it is global, but it is not defined in the executable.
  * return value		- The address which the symbol_name will be loaded to, if the symbol was found and is global.
  */
+
+
 unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val) {
     int symbol_name_length = strlen(symbol_name);
     FILE *file = fopen(exe_file_name, "rb");
@@ -63,24 +65,23 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
     Elf64_Sym symbols[numentries];
 	fseek(exe_file, symtab_header.sh_offset, SEEK_SET);
     fread(symbols, sizeof(Elf64_Sym), num_entries, file);
+	  char strtab[strtab_header.sh_size];
+    fseek(exe_file, my_strtab.sh_offset, SEEK_SET);
+    fread(strtab, my_strtab.sh_size, 1, exe_file);
 
-
-    int curr_offset;
-    bool is_global=false;
-    bool is_local=false;
-    bool defined=true;
-    bool exists = false;
-    int string_sec_offset=my_strtab.sh_offset;
-    char *curr_name = "";
-    int index_of_symbol=0;
-
-    for (int i = 0; i < numentries; i++) {
-        curr_offset = symbols[i].st_name;
-        fseek(file, (curr_offset + string_sec_offset), SEEK_SET);
-        fread(curr_name, symbol_name_length, 1, file);
-        if (strcmp(curr_name, symbol_name) == 0) {
-            index_of_symbol = i;
-            exists = true;
+int index_of_symbol = -1;
+    int len;
+    bool is_local = false;
+    bool global_exists = false;
+bool exist=false
+   for(int i = 0; i<numentries; i++){
+        length = table_len(strtab,symbols[i].st_name);
+        char name[length];
+        char* source = strtab + symbols[i].st_name;
+        strncpy(name, source, length);
+        if(strcmp(symbol_name, name)==0){
+	index_of_symbol=i
+	exist=true
             if (ELF64_ST_BIND(symbols[i].st_info) == 0) {
                 is_global = 1;
             }
@@ -110,6 +111,17 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
         return 0;
     }
 }
+int table_len(char* strtab, Elf64_Word st_name) {
+    //including null-terminator
+    int length = 0;
+    char c = strtab[st_name];
+    while (c != 0) {
+        length++;
+        c = strtab[st_name +length];
+    }
+    return length+1;
+}
+
 int main(int argc, char *const argv[]) {
 	int err = 0;
 	unsigned long addr = find_symbol(argv[1], argv[2], &err);
